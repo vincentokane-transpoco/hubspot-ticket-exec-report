@@ -1,0 +1,30 @@
+name: Refresh HubSpot Tickets & Metrics
+
+on:
+  schedule:
+    # GitHub schedules are UTC. :contentReference[oaicite:3]{index=3}
+    # Monday 07:30 Ireland time:
+    # - In winter (GMT) use 07:30 UTC
+    # - In summer (IST) use 06:30 UTC
+    # This runs both to cover DST.
+    - cron: "30 6 * * 1"
+    - cron: "30 7 * * 1"
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - run: python jobs/fetch_hubspot.py
+        env:
+          HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CATEGORY_PROP: ${{ secrets.CATEGORY_PROP }}
+      - run: python jobs/build_metrics.py
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
