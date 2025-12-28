@@ -66,7 +66,11 @@ def fetch_owners() -> list[dict]:
     return r.json().get("results", [])
 
 def main():
-    engine = create_engine(DATABASE_URL)
+    engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+)
+
 
     closed_stage_ids = get_closed_stage_ids()
     tickets = fetch_all_tickets()
