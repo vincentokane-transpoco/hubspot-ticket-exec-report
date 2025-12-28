@@ -6,6 +6,44 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from sqlalchemy import create_engine
 
+from datetime import time
+
+WORK_START = time(9, 0)
+WORK_END = time(17, 0)
+
+def business_hours_between(start: datetime, end: datetime) -> float:
+    """
+    Business hours between two timezone-aware datetimes in Europe/Dublin.
+    Counts Mon–Fri 09:00–17:00 only.
+    """
+    if pd.isna(start) or pd.isna(end) or end <= start:
+        return 0.0
+
+    start = start.astimezone(TZ)
+    end = end.astimezone(TZ)
+
+    total = 0.0
+    cur = start
+
+    while cur.date() <= end.date():
+        if cur.weekday() >= 5:  # Sat/Sun
+            cur = (cur.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1))
+            continue
+
+        day_start = datetime.combine(cur.date(), WORK_START, tzinfo=TZ)
+        day_end = datetime.combine(cur.date(), WORK_END, tzinfo=TZ)
+
+        window_start = max(day_start, start)
+        window_end = min(day_end, end)
+
+        if window_end > window_start:
+            total += (window_end - window_start).total_seconds() / 3600.0
+
+        cur = (cur.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1))
+
+    return total
+
+
 DATABASE_URL = os.environ["DATABASE_URL"]
 TZ = ZoneInfo("Europe/Dublin")
 
