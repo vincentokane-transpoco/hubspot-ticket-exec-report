@@ -122,12 +122,32 @@ end_utc = end_dt.astimezone(ZoneInfo("UTC"))
 
 opened = t[(t["created_at"] >= start_utc) & (t["created_at"] < end_utc)]
 closed = t[(t["is_closed"] == True) & (t["closed_at"].notna()) & (t["closed_at"] >= start_utc) & (t["closed_at"] < end_utc)]
+if len(closed) > 0:
+    closed = closed.copy()
+    closed["resolution_bh_hours"] = closed.apply(
+        lambda r: business_hours_between(r["created_at"].to_pydatetime(), r["closed_at"].to_pydatetime()),
+        axis=1
+    )
+else:
+    closed = closed.copy()
+    closed["resolution_bh_hours"] = pd.Series(dtype="float")
+
 backlog = t[(t["created_at"] < end_utc) & ((t["closed_at"].isna()) | (t["closed_at"] >= end_utc) | (t["is_closed"] == False))]
 
-c1, c2, c3 = st.columns(3)
+c1, c2, c3, c4, c5 = st.columns(5)
 c1.metric("Opened", len(opened))
 c2.metric("Closed", len(closed))
 c3.metric("Backlog (end of period)", len(backlog))
+
+if closed["resolution_bh_hours"].notna().any():
+    med = float(closed["resolution_bh_hours"].median())
+    p90 = float(closed["resolution_bh_hours"].quantile(0.9))
+    c4.metric("Resolution time (median, bh)", f"{med:.1f}h")
+    c5.metric("Resolution time (P90, bh)", f"{p90:.1f}h")
+else:
+    c4.metric("Resolution time (median, bh)", "—")
+    c5.metric("Resolution time (P90, bh)", "—")
+
 
 st.divider()
 
