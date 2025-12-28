@@ -105,7 +105,11 @@ def build_weekly_metrics(df: pd.DataFrame, weeks_back: int = 26) -> pd.DataFrame
     return out
 
 def main():
-    engine = create_engine(DATABASE_URL)
+    engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+)
+
     df = pd.read_sql("select * from tickets_snapshot", engine)
     df["owner_id"] = df["owner_id"].fillna("Unassigned").astype(str)
     df["category"] = df["category"].fillna("Uncategorised")
